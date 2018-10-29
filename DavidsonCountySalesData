@@ -1,0 +1,56 @@
+# Script to download xls files from Nashville TN davidson County Website
+
+#loading necessary Packages
+library(tidyverse)
+library(gdata)
+library(janitor)
+library(data.table)
+
+y = c('01','02','03','04', '05', '06','07','08','09','10','11','12') #Indexing for 12 months
+zones = c(1:9) #Indexing for 9 zones in davidson county
+comb = expand.grid(y, zones)
+  #filtering our specific months for which no data is available yet
+  comb %>% filter(!Var1 %like% "09" , !Var1 %like% "10" , !Var1 %like% "11" , !Var1 %like% "12") -> comb
+Year = "2018"
+
+URL = as.character(1:(length(y)*length(zones)))
+
+    for (i in 1:length(URL)) {
+
+              URL[i] = paste("http://www.padctn.org/sales/",Year,"/",comb[i,1],'_z_',comb[i,2],'.xls',sep="")
+      
+        }
+   
+
+DataFiles = paste(y,"zone",sep="") 
+DataFilesList = as.list(nrow(DataFiles))
+MonthsInYear = 8
+
+#Savings all downloaded files into a list of dataframes
+for (i in 1:108) {
+  
+  #Savings all data files into one large list of data frames
+  DataFilesList[[i]] = as.data.frame(read.xls(URL[i], perl = "C:/Perl64/bin/perl.exe"))
+  
+  #adding column to each dataframe to indicate davidson county zone
+  DataFilesList[[i]]["zone"] = comb[i,2]
+  
+  #Converting the Sale.Date field to a date format
+  #DataFilesList[[i]][,6] = excel_numeric_to_date(as.numeric(DataFilesList[[i]][,6]),'modern')
+ 
+   #Creating a data frame object of each excel file downloaded from website
+  #assign(DataFiles[i], read.xls(url[i], perl = "C:/Perl64/bin/perl.exe"))
+  #
+}
+
+MasterDF = rbindlist(DataFilesList)
+  MasterDF$Sale.Date = as.Date(MasterDF$Sale.Date, origin = "1899-12-30")
+
+write.csv(MasterDF, file = paste(Year,"DavidsonCountyAllSales.csv", sep = "") )
+
+#cleaning up variables
+rm(MonthsInYear, i, URL, y, DataFiles, zones, DataFilesList, comb)
+
+
+
+
